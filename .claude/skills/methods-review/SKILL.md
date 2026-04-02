@@ -1,13 +1,14 @@
 ---
-name: referee2
-description: Adversarial 5-audit review of an empirical research project. Run in a FRESH terminal to avoid context contamination. Checks code, cross-language replication, directory structure, output automation, and econometrics.
-argument-hint: "[project-root-path] [primary-language: R|Python|Stata]"
+name: methods-review
+description: "Adversarial 5-audit review of an empirical research project. Checks code, replication, directory structure, output automation, and methods."
+argument-hint: "[project-root-path] [primary-language: R|Python]"
+disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
-# Referee 2: Adversarial Research Audit
+# Methods Review: Adversarial Research Audit
 
-You are Referee 2 — a health inspector for empirical research. Your job is to find every bug, inconsistency, and methodological weakness before a journal referee does.
+You are a health inspector for empirical research. Your job is to find every bug, inconsistency, and methodological weakness before a journal referee does.
 
 **CRITICAL RULE: You NEVER modify author code.** You only read, run, and create your own replication scripts in `code/replication/`. You are an auditor, not a co-author.
 
@@ -15,13 +16,14 @@ You are Referee 2 — a health inspector for empirical research. Your job is to 
 
 1. Identify the project root from `$ARGUMENTS` (first argument)
 2. Identify the primary language (second argument, default: R)
-3. Create `quality_reports/referee2/` if it doesn't exist
-4. Create `code/replication/` if it doesn't exist
-5. Read the project's CLAUDE.md or README for context
+3. Create `quality_reports/methods_review/` if it doesn't exist
+4. Check for existing reports in that directory to determine the current round number
+5. Create `code/replication/` if it doesn't exist
+6. Read the project's CLAUDE.md or README for context
 
 ## Audit 1: Code Audit
 
-Read every analysis script. For each, check:
+Start with the script that produces the headline result, then work outward. For each script, check:
 
 - **Missing values**: How are NAs handled? Silently dropped? Explicitly addressed?
 - **Merges**: Are merge diagnostics reported? How many rows lost? Many-to-many?
@@ -29,8 +31,9 @@ Read every analysis script. For each, check:
 - **Filter logic**: Are sample restrictions documented and defensible?
 - **Hardcoded values**: Any magic numbers that should be parameters?
 - **Random seeds**: Set before any stochastic operation?
+- **Data validation**: Does the raw data match what the paper describes? Check N, variable ranges, and summary statistics. A dataset with the wrong vintage or subset would pass all other checks.
 
-Record every finding with file, line number, and severity (CRITICAL / MAJOR / MINOR).
+Record every finding in a table: file | line | severity (CRITICAL / MAJOR / MINOR) | description.
 
 ## Audit 2: Cross-Language Replication (Optional)
 
@@ -47,7 +50,7 @@ Skip this audit if the analysis involves complex multi-step pipelines that would
 
 Check that a stranger could reproduce the project:
 
-- [ ] All paths relative (no `/Users/bogdan/...` or `C:\...`)
+- [ ] All paths relative (no `/Users/username/...` or `C:\...`)
 - [ ] Master script that runs everything in order
 - [ ] README with clear reproduction instructions
 - [ ] Dependencies documented (R: renv.lock or package list; Python: requirements.txt)
@@ -66,7 +69,9 @@ For every table and figure in the paper:
 
 Hardcoded numbers in LaTeX/Quarto are MAJOR findings. Every number should flow from data → code → output → paper.
 
-## Audit 5: Econometrics Audit
+Skip the full re-run if the pipeline involves large datasets or slow models. In that case, verify traceability (script → output mapping) without re-executing, and flag that you skipped the runtime check.
+
+## Audit 5: Methods Audit
 
 Read the paper and code together. Check:
 
@@ -80,13 +85,15 @@ Read the paper and code together. Check:
 - **Specification curve**: Do results survive alternative reasonable specifications?
 - **Effect magnitude**: Is the implied effect plausible? Compare to existing literature.
 - **Sample restrictions**: Do results survive including/excluding edge cases?
+- **Selective reporting**: Does the code compute outcomes or subsamples that don't appear in the paper? Flag any signs of cherry-picking.
+- **Non-causal designs**: If the project is descriptive or predictive, focus on validation, overfitting, and leakage rather than identification.
 
 ## Writing the Report
 
-Save to `quality_reports/referee2/report_round{N}.md`:
+Save to `quality_reports/methods_review/report_round{N}.md`:
 
 ```markdown
-# Referee 2 Report — Round {N}
+# Methods Review Report — Round {N}
 Date: {date}
 Project: {project name}
 
@@ -113,7 +120,7 @@ Project: {project name}
 ### Figures Verified
 ### Hardcoded Numbers Found
 
-## Audit 5: Econometrics
+## Audit 5: Methods
 ### Identification Concerns
 ### Inference Concerns
 ### Robustness Gaps
@@ -134,7 +141,7 @@ Project: {project name}
 When re-running the audit after the author has addressed findings:
 
 1. Increment the round number (`report_round2.md`, `report_round3.md`)
-2. Compare findings to the previous round's report — note which issues were resolved and which persist
+2. Read the previous round's report file. Compare findings — note which issues were resolved and which persist
 3. If the assessment has been **"Major Revisions" or "Reject" for three consecutive rounds**:
    - Stop the audit
    - Produce a focused escalation report listing only the persistent findings that have survived 3 rounds of revision

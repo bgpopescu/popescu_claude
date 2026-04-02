@@ -1,7 +1,8 @@
 ---
 name: robustness-battery
 description: Run a systematic battery of robustness checks on a main specification. Tests alternative samples, controls, estimators, SEs, and functional forms. Produces a summary table and specification curve.
-argument-hint: "[main-script-path] [language: R|Python|Stata]"
+argument-hint: "[main-script-path] [language: R|Python]"
+disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 
@@ -11,7 +12,7 @@ Take a main regression specification and systematically test its sensitivity to 
 
 ## Input
 
-`$ARGUMENTS` — path to the main analysis script and optionally the language (R, Python, Stata). If language not specified, infer from file extension.
+`$ARGUMENTS` — path to the main analysis script and optionally the language (R, Python). If language not specified, infer from file extension.
 
 ## Step 1: Understand the Main Specification
 
@@ -24,10 +25,13 @@ Read the script and identify:
 6. **Standard error clustering level**
 7. **Estimator** (OLS, logit, Poisson, IV, etc.)
 8. **The main result**: coefficient, SE, significance, N
+9. **Data path**: Trace the data loading chain — find the actual dataset path and ensure robustness scripts can access it from `code/robustness/`
 
 Document this as the "baseline specification" in the output report.
 
 ## Step 2: Design the Robustness Battery
+
+If a strategy memo exists at `quality_reports/strategy/strategy_memo.md` (from `/strategize`), read its robustness plan and use it as a starting point. Otherwise, design checks from scratch.
 
 Generate variations along these dimensions. Use judgment about which apply to the specification at hand — not every dimension is relevant to every design.
 
@@ -45,7 +49,7 @@ Prioritize placebos and estimator alternatives — these are the checks referees
 
 ## Step 3: Generate the Scripts
 
-Create robustness scripts in `code/robustness/`:
+Create robustness scripts in `code/robustness/` (create the directory if it doesn't exist):
 
 ```
 code/robustness/
@@ -59,13 +63,25 @@ code/robustness/
 └── run_all_robustness.R
 ```
 
-Each script should:
+Adapt file extensions to the language (`.R` for R, `.py` for Python). Each script should:
+- Replicate the main script's setup: library loads, custom functions, data transformations
 - Source or load the same data as the main specification
 - Run each variation
 - Store results (coefficient, SE, p-value, N, specification label) in a data frame
 - Save results to `output/robustness/`
 
 `run_all_robustness.R` runs everything and compiles results.
+
+## Step 3.5: Run and Debug
+
+Run each script. For each:
+
+1. Execute the script
+2. If it errors, read the error, fix the script, and retry
+3. Only move to the next script after the current one runs cleanly
+4. Run `run_all_robustness.R` last to verify everything works end-to-end
+
+Do not proceed to Step 4 until all scripts execute without errors.
 
 ## Step 4: Compile Results
 
@@ -84,7 +100,7 @@ And a specification curve dataset (for plotting):
 
 ## Step 5: Interpret and Flag
 
-In the report, classify results:
+In the report, classify specification **stability** (not result quality — a robust result from a flawed design is still flawed):
 
 - **ROBUST**: Coefficient same sign, similar magnitude, still significant across most variations
 - **SENSITIVE**: Coefficient changes notably (>50% magnitude change) or loses significance in some reasonable specifications

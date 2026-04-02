@@ -1,62 +1,55 @@
 ---
 name: discover-lit
-description: "Systematic literature discovery for a research question. Searches databases, produces annotated bibliography with proximity scoring, BibTeX entries, a frontier map identifying gaps, and a positioning statement. Use when starting a literature review, scoping a new project, or checking for scooping risk."
+description: "Structured literature discovery. Produces annotated bibliography, BibTeX, frontier map, and positioning statement. Use when starting a lit review or scoping a project."
 argument-hint: "[research-question-or-topic]"
+disable-model-invocation: true
 allowed-tools: Read, Write, Grep, Glob, WebSearch, WebFetch
 ---
 
 # Discover-Lit: Structured Literature Search
 
-Systematic literature discovery that produces four deliverables: annotated bibliography, BibTeX file, frontier map, and positioning statement. Includes a built-in quality audit.
+**This supplements, but does not replace, a manual database search (Scopus, Web of Science, Google Scholar).** AI-assisted literature search has real limitations — paywalled content, incomplete metadata, hallucination risk on citations. Always verify results against a proper database.
+
+Structured literature discovery that produces four deliverables: annotated bibliography, BibTeX file, frontier map, and positioning statement. Works best when the user provides seed papers or an existing .bib file; web search supplements but cannot replace a proper database search.
 
 ## Input
 
-`$ARGUMENTS` — a research question, topic description, or path to a README/strategy memo. If a domain profile exists (from `/domain-profile`), read it first to calibrate journal targets and field conventions.
+`$ARGUMENTS` — a research question, topic description, path to a README/strategy memo, or seed papers/bibliography to organize and extend.
 
 ---
 
 ## Step 1: Define Search Scope
 
-Before searching, clarify with the user (or infer from the research question):
+If the input is a single sentence or vague topic, ask the user to clarify the following before searching. If a strategy memo, detailed description, or seed papers are provided, infer these directly:
 
 - **Treatment/intervention**: What is being studied?
 - **Outcome**: What effect is measured?
 - **Context**: Population, geography, time period
 - **Design constraints**: What identification strategy is likely? (This shapes which methods papers to find)
+- **Disciplinary scope**: Single discipline or interdisciplinary? If the question spans fields (e.g., economics and political science), search top journals in each and include methods papers from both traditions.
+- **Terminology**: Identify synonyms across fields for key concepts (e.g., "instrumental variables" in economics vs. "Mendelian randomization" in epidemiology). Use all variants in search queries.
 
-## Step 2: Search Systematically
+## Step 2: Search
 
-Execute searches in this order:
+### Tier 1 — Reliable (web search can do this well)
 
-### 2a. Anchor Papers
+- **Anchor papers**: Find 2–3 recent or landmark papers directly addressing the question via keyword web search
+- **Working paper repositories**: Google Scholar, SSRN, discipline-specific repositories (e.g., NBER/RePEc for economics, APSA Preprints for political science)
+- **Keyword search**: Top journals in the relevant discipline plus field journals, last 5 years. Infer the relevant journals from the research question and discipline.
 
-Find 2–3 recent (last 3 years) or landmark papers directly addressing the question. These are seeds for citation chains.
+### Tier 2 — Best-effort (attempt but flag as incomplete)
 
-### 2b. Forward and Backward Citation Chains
+- **Forward/backward citation chains**: Who cites the anchor papers, and what do they cite? Depth: 2 generations. *These results will be partial — flag gaps for the user to verify against a citation database.*
+- **Author tracking**: Identify 2–4 prolific researchers on the topic. Scan Google Scholar profiles for working papers and concurrent projects. Flag **scooping risk**. *Profile access is inconsistent — report what you find and what you couldn't access.*
+- **Journal archive scans**: Targeted searches within specific journal archives. *Many archives block scraping — note which journals you could and couldn't search.*
 
-- Who cites the anchor papers? (forward)
-- What do the anchor papers cite? (backward)
-- Depth: 2 generations
+### Before searching
 
-### 2c. Top Journal Scan
+If the user provided an existing .bib file or seed papers, read them first. These are your starting point — exclude them from search results and build outward. Extend, don't duplicate.
 
-Search the top-5 general journals (AER, Econometrica, JPE, QJE, REStud) plus the top 3–5 field journals relevant to the topic. Last 5 years, using topic keywords.
-
-If a domain profile exists, use its journal tiers. Otherwise, infer the relevant field journals from the research question.
-
-### 2d. Working Paper Repositories
-
-- NBER working papers (keyword search, sort by recency)
-- SSRN (field-specific collections)
-- RePEc (author + topic search)
-
-### 2e. Author Tracking
-
-Identify 2–4 prolific researchers on the topic. Scan their recent CVs or Google Scholar profiles for working papers and concurrent projects. Flag **scooping risk** — ongoing work that addresses the same question.
-
-### 2f. Screening and Deduplication
-
-Remove duplicates (same paper across venues). Prioritize published over working paper versions.
+### Screening
+- Remove duplicates (same paper across venues). Prioritize published over working paper versions.
+- **Stop condition**: Stop searching when two consecutive search rounds yield no new proximity-4+ papers. On broad topics, cap at the coverage guidelines rather than spiraling.
 
 ## Step 3: Document Each Paper
 
@@ -93,7 +86,9 @@ For every paper included, record:
 | **Methodological Precedent** | Uses your identification strategy in a different context | 5–10 papers |
 | **Complementary Evidence** | Adjacent outcomes, pieces of the causal chain | 5–15 papers |
 | **Theoretical Foundations** | Theory relevant to the causal mechanism | 3–10 papers |
-| **Methods Papers** | Foundational econometric papers on the chosen design | 2–5 papers |
+| **Methods Papers** | Foundational papers on the chosen design | 2–5 papers |
+
+Not all categories need to hit the upper bound — these are guidelines for a mature literature. Smaller or newer fields will have fewer papers.
 
 ## Step 4: Produce Outputs
 
@@ -103,17 +98,17 @@ Organized by relevance category. Each paper uses the template from Step 3.
 
 ### Output 2: BibTeX File (`bibliography.bib`)
 
-Machine-readable bibliography. Ensure consistent formatting:
+Machine-readable bibliography. Ensure consistent formatting. Note: web-scraped metadata (volume, pages, DOI) is often incomplete or wrong — flag entries with missing fields so the user can verify against the publisher page.
 
 ```bibtex
 @article{Card1994,
   author  = {Card, David and Krueger, Alan B.},
   year    = {1994},
-  title   = {Minimum {W}ages and {E}mployment},
-  journal = {American Economic Review},
+  title   = {{Minimum Wages and Employment}},
+  journal = {{American Economic Review}},
   volume  = {84},
   number  = {4},
-  pages   = {772--793},
+  pages   = {772-793},
   doi     = {10.2307/2118030}
 }
 ```
@@ -142,35 +137,41 @@ Identify what's been done, what's active, and what's missing:
 - Paragraph 1: What the existing literature establishes
 - Paragraph 2: What this project contributes that is novel
 
-## Step 5: Quality Audit
+## Step 5: Verification Pass
 
-After producing all outputs, switch perspective to a literature quality critic and check:
+Before finalizing, re-search each included paper's exact title to confirm it exists. For every paper:
 
-| Check | What to Look For | Deduction if Missing |
-|-------|-----------------|---------------------|
-| **Coverage gaps** | Missing subfields, seminal papers, methods literature | -15 to -20 |
-| **Journal quality** | Over-reliance on working papers (>50% unpublished) | -10 |
-| **Top-5 representation** | Missing papers from AER/Econometrica/JPE/QJE/REStud that address the topic | -10 |
-| **Recency** | Missing papers from last 2 years | -10 |
-| **Scope calibration** | Too narrow (single subfield) or too broad (unfocused) | -10 |
-| **Frontier map accuracy** | Gaps identified are genuine, not just overlooked papers | -5 |
-| **Proximity scores** | Consistent and reasonable across papers | -5 |
+- If the title, authors, and venue are confirmed: keep. Attempt to complete missing BibTeX metadata (volume, pages, DOI) from the DOI or publisher page when accessible.
+- If the paper cannot be found via title search: remove it and note "could not verify" in the audit.
+- If metadata differs from what you recorded (different year, different journal): correct it.
 
-Score starts at 100. If below 80, revise the bibliography before delivering.
+This step catches hallucinated citations — the single biggest risk in AI-assisted literature search.
 
-## Coverage Targets
+## Step 6: Quality Audit
 
-| Metric | Target |
-|--------|--------|
-| Total papers | 25–40 |
-| Published vs. working paper | 60–70% published |
-| Directly related (proximity 5) | 8–12 papers |
-| Methods/precedent | 5–8 papers |
-| Recency (last 3 years) | 30% of papers |
+After producing all outputs, check for:
+
+- **Coverage gaps** — missing subfields, seminal papers, or methods literature
+- **Journal quality** — over-reliance on working papers (aim for majority published)
+- **Top journal representation** — missing papers from the discipline's top general journals
+- **Recency** — missing papers from last 2 years
+- **Scope calibration** — too narrow (single subfield) or too broad (unfocused)
+- **Frontier map accuracy** — gaps identified are genuine, not just overlooked papers
+- **Proximity scores** — consistent and reasonable across papers
+
+If major gaps are found, revise before delivering. Flag any areas where web search limitations prevented thorough coverage.
+
+## Coverage Guidelines
+
+These are guidelines, not hard targets — actual counts depend on the topic's breadth and what web search can access:
+
+- Aim for 15–25 well-verified papers; larger literatures may warrant more, but quality over volume
+- Majority published over working papers
+- Include recent work (last 3 years) alongside foundational papers
 
 ## Output Location
 
-Save all outputs to `quality_reports/literature/`:
+Save all outputs to `quality_reports/literature/` (or project root if that directory doesn't exist):
 - `bibliography.md`
 - `bibliography.bib`
 - `frontier_map.md`

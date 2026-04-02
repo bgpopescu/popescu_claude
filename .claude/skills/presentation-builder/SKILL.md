@@ -1,8 +1,9 @@
 ---
 name: presentation-builder
-description: "Build academic Quarto RevealJS slide decks from papers, notes, outlines, or lecture topics. Handles theme design, rhetoric restructuring, figure/table insertion, Mermaid diagrams, and multi-agent review. Supports conference talks, job talks, seminars, and full lecture decks. Use whenever the user mentions slides, deck, presentation, lecture, RevealJS, or wants to turn a paper into a talk."
+description: "Build academic Quarto RevealJS slide decks from papers, notes, or topics. Handles rhetoric, figures, Mermaid diagrams, and multi-agent review."
 argument-hint: "[paper-path-or-topic]"
-allowed-tools: Bash(which*), Bash(quarto*), Bash(python*), Bash(Rscript*), Bash(pip*), Bash(npx*), Bash(mkdir*), Bash(ls*), Bash(cp*), Read, Write, Edit, Agent
+disable-model-invocation: true
+allowed-tools: Bash(which*), Bash(quarto*), Bash(python*), Bash(Rscript*), Bash(pip*), Bash(npx*), Bash(mkdir*), Bash(ls*), Bash(cp*), Read, Write, Edit, Grep, Glob, Agent
 ---
 
 # Presentation Builder: Academic Quarto RevealJS Decks
@@ -56,8 +57,8 @@ Bad: "Results." Good: "Colonial institutions explain 75% of income variation." I
 **Bullets are a confession of defeat.**
 A bullet list says "I couldn't figure out how these ideas relate." Usually there's a structure hiding in the bullets: a sequence, a contrast, a hierarchy, a causal chain. Find it. Make it visible with a diagram, table, fragments, or prose. If a list truly is the right format, maximum 3 items.
 
-**MB/MC equivalence across slides.**
-The marginal benefit-to-cost ratio should be equal across all slides. A deck that overloads slide 7 and coasts on slide 12 has a distribution problem. Smooth the cognitive load.
+**Even cognitive load across slides.**
+A deck that overloads slide 7 and coasts on slide 12 has a distribution problem. Smooth the cognitive load so no single slide overwhelms while others feel empty.
 Exception: deliberate "jump scares" — a striking statistic, a provocative claim — spikes used for intentional rhetorical effect.
 
 **Beautiful quantification.**
@@ -117,15 +118,14 @@ format:
   revealjs:
     theme: _extensions/meridian.scss
     self-contained: true
-    footer: "Popescu (TEC) — Short Title"
+    footer: "Author — Short Title"
     slide-number: true
 title-slide-attributes:
   data-background-color: "#f9fafb"
 author:
-  - name: Bogdan G. Popescu
-    orcid: 0000-0002-7730-7495
-    email: bgpopescu@tec.mx
-    affiliations: "Tecnológico de Monterrey"
+  - name: "Your Name"
+    email: "your@email.com"
+    affiliations: "Your Institution"
 ---
 ```
 
@@ -200,7 +200,7 @@ Create a slide outline before writing any .qmd content. Each slide entry should 
 - What the slide contains (figure, diagram, text, code)
 - Approximate cognitive weight (light / medium / heavy)
 
-Check for MB/MC equivalence: no cluster of consecutive heavy slides, no long stretches of light slides. Redistribute if needed.
+Check for cognitive load balance: no cluster of consecutive heavy slides, no long stretches of light slides. Redistribute if needed.
 
 Typical conference deck structure (20 minutes), roughly 12–16 content slides:
 
@@ -274,6 +274,21 @@ flowchart LR
 - If a diagram overflows or leaves large whitespace, revise width/height, fontSize, and spacing until it fits cleanly within one slide
 - If a diagram fails to compile or remains unreadable after fixes, replace it with a ggplot2 schematic. Do not leave broken or partially rendered diagrams.
 
+### Slide Transitions
+
+Use `transition: none` (default) or `fade` for academic contexts. Avoid animated transitions (`convex`, `zoom`, `slide`) — they distract from content.
+
+### Speaker Notes
+
+Use `:::{.notes}` blocks for speaker notes — what you plan to say, not what's on the slide:
+
+```
+:::{.notes}
+Key point to emphasize: the coefficient is large but imprecise.
+Mention the robustness check in the appendix if asked.
+:::
+```
+
 ### Slide Fragments
 
 Use RevealJS fragments to control cognitive load within dense slides:
@@ -342,7 +357,7 @@ Compilation success does not mean visual success. These errors are silent:
 npx decktape reveal presentation.html slides-proof.pdf --size 1920x1080
 ```
 
-If `decktape` is not available, it will be auto-installed via npx on first run. Then use the Read tool with the `pages` parameter to visually inspect each slide:
+If `decktape` is not available, it will be auto-installed via npx on first run. If npx or decktape fails, fall back to opening the HTML in a browser and manually inspecting each slide. Then use the Read tool with the `pages` parameter to visually inspect each slide:
 - `Read("slides-proof.pdf", pages: "1-5")` — check first batch
 - `Read("slides-proof.pdf", pages: "6-10")` — check next batch
 - Continue until all slides are inspected
@@ -357,7 +372,7 @@ After the first complete compile, run a review cycle with three agents:
 
 **Agent 2 (Rhetoric & Content Reviewer):** Evaluate the full deck for:
 - Narrative flow — does the argument build logically through the three-act arc?
-- MB/MC balance — is cognitive load distributed evenly?
+- cognitive load balance — is cognitive load distributed evenly?
 - Title quality — are ALL titles assertions, not labels?
 - Pyramid principle — does the conclusion appear early, then get supported?
 - Technical rigor — is the identification strategy clear?
@@ -439,14 +454,14 @@ For a **lecture** (90 min, 40–55 slides):
 
 ### Code Language
 
-Default is R with ggplot2. If the paper uses Python/matplotlib or Stata, match the paper's language. Generated figures always go in `figures/` as PNG.
+Default is R with ggplot2. If the paper uses Python/matplotlib, match the paper's language. Generated figures always go in `figures/` as PNG.
 
 ## Quick Reference
 
 | Step | Action |
 |------|--------|
 | **Read** | Understand source material, detect pedagogy and argument arc |
-| **Plan** | Outline with assertion titles, check MB/MC balance, include Devil's Advocate |
+| **Plan** | Outline with assertion titles, check cognitive load balance, include Devil's Advocate |
 | **Build** | Generate figures first, then write slides with fragments |
 | **Compile** | Fix ALL warnings, loop until zero |
 | **Verify** | Generate proof PDF via decktape, Read it page by page to catch visual errors |

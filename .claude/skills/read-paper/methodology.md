@@ -1,18 +1,18 @@
 # Why PDF Splitting Works: The Methodology
 
-This document explains the reasoning behind the split-pdf skill. It is reference material for humans — the SKILL.md file contains the actual instructions Claude follows.
+This document explains the reasoning behind the read-paper skill. It is reference material for humans — the SKILL.md file contains the actual instructions Claude follows.
 
 ---
 
 ## The Problem
 
-Claude Code (currently Claude Opus 4.5, model ID `claude-opus-4-5-20251101`) can read PDFs, and it has a very large context window (200k tokens in). In principle, a 40-page academic paper should fit comfortably. In practice, it doesn't work well. Claude Code regularly chokes when asked to read long PDFs, and this manifests in two distinct ways:
+Claude Code can read PDFs, and modern models have large context windows (1M tokens for Opus 4.6). In principle, a 40-page academic paper should fit comfortably. In practice, it doesn't work well. The core problem is not context size — it's comprehension quality.
 
-**Problem 1: Session-breaking "prompt too long" errors.** PDF rendering into tokens is expensive. PDFs are not plain text — they are containers for fonts, vector graphics, embedded images, multi-column layouts, mathematical notation, tables, and footnotes. When Claude Code ingests a PDF, it must convert this complex layout into a linear token stream. A long PDF can produce a token sequence that, combined with the rest of the conversation context, exceeds the model's input limit. When this happens, Claude Code returns a "prompt too long" error. There is no way to recover — the session is broken, and all context is lost unless it has been externalized to files.
+**Problem 1: Shallow, unreliable reading.** This is the primary motivation. Even when a PDF fits in context, comprehension degrades badly for long documents. The model's attention over many tokens from a single dense document is not uniform — it attends more carefully to the beginning and end, and less carefully to the middle. The result is that Claude "skims" rather than "reads." It catches the abstract and introduction, gets fuzzy on the methodology, and often misses or fabricates details from the results and appendix. It truncates content silently, hallucinates details it didn't actually parse, or produces shallow summaries that miss critical methodological details.
 
-**Problem 2: Shallow, unreliable reading.** Even when the PDF does not trigger a hard failure, comprehension degrades badly for long documents. The model's attention over many tokens from a single dense document is not uniform — it attends more carefully to the beginning and end, and less carefully to the middle. The result is that Claude "skims" rather than "reads." It catches the abstract and introduction, gets fuzzy on the methodology, and often misses or fabricates details from the results and appendix. It truncates content silently, hallucinates details it didn't actually parse, or produces shallow summaries that miss critical methodological details.
+**Problem 2: Session-breaking "prompt too long" errors.** A secondary concern, less common with larger context windows but still possible. PDF rendering into tokens is expensive — PDFs contain fonts, vector graphics, embedded images, multi-column layouts, mathematical notation, tables, and footnotes. A long PDF combined with conversation context can exceed input limits, breaking the session with no recovery.
 
-These are related but distinct problems. The first is a hard constraint — the session dies. The second is a soft degradation — the session continues but the output is unreliable. Splitting addresses both.
+These are related but distinct problems. The first is a soft degradation — the session continues but the output is unreliable. The second is a hard constraint — the session dies. Splitting addresses both, but the attention-quality argument is the one that holds regardless of context window size.
 
 ## Why Batched Reading Works
 

@@ -1,37 +1,37 @@
 ---
-name: search-book
-description: Search large PDFs (books, reports, dissertations) for specific information. Extracts full text, searches by keyword and semantic context, returns page numbers with surrounding passages, then reads only the relevant pages carefully.
+name: search-pdf
+description: "Search large PDFs for specific information. Extracts text, searches by keyword, returns page numbers with context, then reads relevant pages."
 argument-hint: "[pdf-path] [search-query]"
-allowed-tools: Bash(python*), Bash(pip*), Read, Write, Edit, Grep
+allowed-tools: Bash(python*), Bash(pip*), Read, Write, Edit, Grep, Glob
 ---
 
-# Search-Book: Targeted Retrieval from Large PDFs
+# Search-PDF: Targeted Retrieval from Large PDFs
 
 Find specific information in a large PDF without reading the whole thing. Extract text, search, return page numbers with context, then read only the relevant pages.
 
-**This is NOT split-pdf.** Split-pdf reads sequentially for comprehensive notes. Search-book finds a needle in a haystack — where in this 600-page book does the author discuss Habsburg land tenure, or where is the regression table for regional outcomes?
+**This is NOT read-paper.** read-paper reads sequentially for comprehensive notes. search-pdf finds a needle in a haystack — where in this 600-page book does the author discuss Habsburg land tenure, or where is the regression table for regional outcomes?
 
 ## Input
 
 `$ARGUMENTS` — a PDF file path and a search query. Examples:
-- `/search-book books/acemoglu_why_nations_fail.pdf "extractive institutions in Congo"`
-- `/search-book books/scott_seeing_like_a_state.pdf "data on agricultural yields"`
-- `/search-book books/piketty_capital.pdf "Table 2.1 wealth-to-income ratio"`
+- `/search-pdf books/acemoglu_why_nations_fail.pdf "extractive institutions in Congo"`
+- `/search-pdf books/scott_seeing_like_a_state.pdf "data on agricultural yields"`
+- `/search-pdf books/piketty_capital.pdf "Table 2.1 wealth-to-income ratio"`
 
 If the user gives only a PDF, ask what they're looking for. If the user gives only a query, ask which book.
 
 ## Step 1: Extract Full Text
 
 ```python
-from PyPDF2 import PdfReader
+import fitz  # pymupdf
 import os, json
 
 def extract_book_text(pdf_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    reader = PdfReader(pdf_path)
+    doc = fitz.open(pdf_path)
     pages = []
-    for i, page in enumerate(reader.pages):
-        text = page.extract_text() or ""
+    for i, page in enumerate(doc):
+        text = page.get_text() or ""
         pages.append({"page": i + 1, "text": text})
 
     # Save full index for reuse
@@ -45,7 +45,7 @@ def extract_book_text(pdf_path, output_dir):
 
 Save the extracted text to `books/index_<name>/page_index.json`. **Check if this index already exists before re-extracting** — for a 600-page book, extraction takes time and the index is reusable across searches.
 
-Install PyPDF2 if needed: `pip install PyPDF2 --break-system-packages`
+Install pymupdf if needed: `pip install pymupdf --break-system-packages`  <!-- Project convention: no venvs in this workflow -->
 
 ## Step 2: Search
 
@@ -98,7 +98,7 @@ Present results ranked by relevance:
 
 When the user says "read page 247" or "show me more from Chapter 8":
 
-1. Read the specific pages from the PDF (use PyPDF2 to extract just those pages)
+1. Read the specific pages from the PDF using the Read tool with the `pages` parameter (e.g., `pages: "247-250"`)
 2. Present the full text of those pages
 3. If the user asked a question, answer it using only what those pages contain
 4. Note the exact page numbers for citation
@@ -115,7 +115,7 @@ If text extraction returns mostly empty strings or garbled characters, the PDF i
    pip install pytesseract pdf2image --break-system-packages
    # Also needs: apt-get install tesseract-ocr (may not be available in sandbox)
    ```
-3. If Tesseract isn't available, suggest the user run OCR locally or use an online tool first, then re-run search-book on the OCR'd PDF.
+3. If Tesseract isn't available, suggest the user run OCR locally or use an online tool first, then re-run search-pdf on the OCR'd PDF.
 
 ## Repeated Searches
 

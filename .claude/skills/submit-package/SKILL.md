@@ -1,7 +1,8 @@
 ---
 name: submit-package
-description: "Build a journal-ready replication package and verify reproducibility. Produces AEA-format README, master script, dependency documentation, data provenance, and runs a 10-point verification checklist. Use before journal submission or when preparing a replication archive."
+description: "Build a journal-ready replication package. Produces AEA-format README, master script, dependency docs, data provenance, and a 10-point verification checklist."
 argument-hint: "[project-root-path]"
+disable-model-invocation: true
 allowed-tools: Read, Write, Grep, Glob, Bash, Edit
 ---
 
@@ -9,7 +10,7 @@ allowed-tools: Read, Write, Grep, Glob, Bash, Edit
 
 Build a complete, reproducible replication package and verify that it works. Produces documentation, a master script, and runs mechanical checks to ensure a stranger could reproduce your results.
 
-**This skill does NOT evaluate research quality.** It checks that things compile, scripts run, files exist, and outputs match. Use `/editorial-review` or `/referee2` for quality assessment.
+**This skill does NOT evaluate research quality.** It checks that things compile, scripts run, files exist, and outputs match. Use `/argument-review` or `/methods-review` for quality assessment.
 
 ## Input
 
@@ -21,7 +22,7 @@ Build a complete, reproducible replication package and verify that it works. Pro
 
 Scan the project and document:
 
-- All analysis scripts (R, Python, Stata, Julia) — list with execution order
+- All analysis scripts (R, Python) — list with execution order
 - All data files — raw and derived, with sizes
 - All output files — tables, figures, derived datasets
 - The manuscript file(s) — LaTeX, Quarto, or Word
@@ -29,7 +30,7 @@ Scan the project and document:
 
 ## Step 2: Build the Master Script
 
-Create a master script (`run_all.R`, `run_all.py`, `run_all.do`, or `run_all.sh`) that:
+Create a master script (`run_all.R`, `run_all.py`, or `run_all.sh`) that:
 
 1. Sets the project root as working directory
 2. Checks for required packages and reports any missing
@@ -133,9 +134,10 @@ Create or verify dependency files:
 |----------|------|--------------|
 | R | `renv.lock` | `renv::snapshot()` |
 | Python | `requirements.txt` | `pip freeze > requirements.txt` |
-| Stata | `stata_packages.txt` | List all `ssc install` commands |
 
 If lockfiles don't exist, create a package list by parsing all scripts for `library()`, `import`, `require()` statements. Note version numbers where available.
+
+Run `R --version` and `python --version` to fill the Software table in the README.
 
 ## Step 5: Document Data Provenance
 
@@ -158,7 +160,7 @@ Run these 10 checks and report pass/fail for each:
 | 1 | **Manuscript compiles** | Run `quarto render` or `pdflatex` | Exit code 0, no errors |
 | 2 | **All scripts execute** | Run each script in order | All exit code 0 |
 | 3 | **All referenced files exist** | Parse scripts for file paths, check existence | No missing inputs or outputs |
-| 4 | **Outputs are fresh** | Compare output timestamps to script timestamps | Outputs newer than scripts |
+| 4 | **Outputs are fresh** | Compare output timestamps to script timestamps | Outputs newer than scripts. Note: timestamps may be unreliable under cloud sync (Dropbox); if results seem wrong, fall back to re-running the script |
 
 ### Checks 5–10: Submission (run before journal submission)
 
@@ -167,7 +169,7 @@ Run these 10 checks and report pass/fail for each:
 | 5 | **Package inventory** | Parse all scripts for package/library calls | All packages documented |
 | 6 | **Dependencies documented** | Check for lockfile or requirements file | Lockfile exists per language |
 | 7 | **Data provenance documented** | Check for data README or documentation | Every dataset has source and access info |
-| 8 | **End-to-end reproducibility** | Delete all outputs, run master script, verify regeneration | All outputs recreated |
+| 8 | **End-to-end reproducibility** | Confirm with user, then delete all outputs, run master script, verify regeneration | All outputs recreated |
 | 9 | **Output-to-paper cross-reference** | Extract `\input{}`, `\includegraphics{}` from manuscript, verify files exist | All referenced files exist, no orphan outputs |
 | 10 | **README completeness** | Check README sections against AEA standard | All required sections present |
 

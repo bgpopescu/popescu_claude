@@ -1,11 +1,11 @@
 ---
-name: split-pdf
-description: Download, split, and deeply read academic PDFs. Use when asked to read, review, or summarize an academic paper. Splits PDFs into 4-page chunks, reads them in small batches, and produces structured reading notes — avoiding context window crashes and shallow comprehension.
-allowed-tools: Bash(python*), Bash(pip*), Bash(curl*), Bash(wget*), Bash(mkdir*), Bash(ls*), Read, Write, Edit, WebSearch, WebFetch
+name: read-paper
+description: "Deeply read academic PDFs. Splits into 4-page chunks, reads in small batches, produces structured notes. Use when asked to read, review, or summarize a paper."
+allowed-tools: Bash(python*), Bash(pip*), Bash(curl*), Bash(wget*), Bash(mkdir*), Bash(ls*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
 argument-hint: [pdf-path-or-search-query]
 ---
 
-# Split-PDF: Download, Split, and Deep-Read Academic Papers
+# Read-Paper: Deep Reading of Academic PDFs
 
 **CRITICAL RULE: Never read a full PDF. Never.** Only read the 4-page split files, and only 3 splits at a time (~12 pages). Reading a full PDF will either crash the session with an unrecoverable "prompt too long" error — destroying all context — or produce shallow, hallucinated output. There are no exceptions.
 
@@ -28,7 +28,8 @@ The user wants you to read, review, or summarize an academic paper. The input is
 1. Use WebSearch to find the paper
 2. Use WebFetch or Bash (curl/wget) to download the PDF
 3. Save it to `./articles/` in the project directory (create the directory if needed)
-4. Proceed to Step 2
+4. If the PDF is paywalled, ask the user to provide a local copy
+5. Proceed to Step 2
 
 **CRITICAL: Always preserve the original PDF.** The downloaded or provided PDF in `./articles/` must NEVER be deleted, moved, or overwritten at any point in this workflow. The split files are derivatives — the original is the permanent artifact. Do not clean up, do not remove, do not tidy. The original stays.
 
@@ -37,7 +38,7 @@ The user wants you to read, review, or summarize an academic paper. The input is
 Create a subdirectory for the splits and run the splitting script:
 
 ```python
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 import os, sys
 
 def split_pdf(input_path, output_dir, pages_per_chunk=4):
@@ -71,13 +72,15 @@ articles/
     └── ...
 ```
 
-The original PDF remains in `articles/` permanently. The splits are working copies. If anything goes wrong, you can always re-split from the original.
+The original PDF remains in `articles/` permanently.
 
-If PyPDF2 is not installed, install it: `pip install PyPDF2`
+**Scanned PDF check:** After splitting, read the first split. If the text is mostly empty or garbled, the PDF is likely scanned images. Tell the user: "This PDF appears to be scanned. Text extraction returned garbled output. Consider running OCR on the PDF first, then re-run /read-paper on the OCR'd version." The splits are working copies. If anything goes wrong, you can always re-split from the original.
+
+If pypdf is not installed, install it: `pip install pypdf --break-system-packages`
 
 ## Step 3: Read in Batches of 3 Splits
 
-Read **exactly 3 split files at a time** (~12 pages). After each batch:
+Read **exactly 3 split files at a time** (~12 pages). Note: the Read tool has a 20-page-per-request limit for PDFs, so 3 × 4-page splits (12 pages) is safe. Do not increase the chunk size without accounting for this limit. After each batch:
 
 1. **Read** the 3 split PDFs using the Read tool
 2. **Update** the running notes file (`notes.md` in the split subdirectory)
@@ -112,13 +115,27 @@ The output is `notes.md` in the split subdirectory:
 articles/split_smith_2024/notes.md
 ```
 
-This file is **updated incrementally** after each batch. Structure it with clear headers for each of the 8 dimensions. After each batch, update whichever dimensions have new information — do not rewrite from scratch.
+This file is **updated incrementally** after each batch. Use this template:
+
+```markdown
+# Notes: [Paper Title]
+**Authors:** ...  |  **Year:** ...  |  **Venue:** ...
+
+## Research Question
+## Audience
+## Method & Identification
+## Data
+## Statistical Methods
+## Findings
+## Contributions
+## Replication Feasibility
+``` After each batch, update whichever dimensions have new information — do not rewrite from scratch.
 
 By the time all splits are read, the notes should contain specific data sources, variable names, equation references, sample sizes, coefficient estimates, and standard errors. Not a summary — a structured extraction.
 
 ## When NOT to Split
 
-- Papers shorter than ~15 pages: read directly (still use the Read tool, not Bash)
+- Papers shorter than ~15 pages: read directly using the Read tool with `pages` parameter (e.g., `pages: "1-15"`), no splitting needed
 - Policy briefs or non-technical documents: a rough summary is fine
 - Triage only: read just the first split (pages 1-4) for abstract and introduction
 

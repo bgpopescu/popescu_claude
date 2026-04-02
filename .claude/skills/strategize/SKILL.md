@@ -1,8 +1,9 @@
 ---
 name: strategize
-description: "Design a causal identification strategy before writing any code. Given a research question, literature, and data, produces a strategy memo, pseudo-code, robustness plan, and falsification tests. Then audits the strategy for identification validity. Use when planning an empirical approach, before implementation."
+description: "Design a causal identification strategy before writing code. Produces a strategy memo, pseudo-code, robustness plan, and falsification tests, then audits for identification validity."
 argument-hint: "[research-question-or-project-description]"
-allowed-tools: Read, Write, Grep, Glob, Edit
+disable-model-invocation: true
+allowed-tools: Read, Write, Grep, Glob, Edit, Bash
 ---
 
 # Strategize: Research Design Before Code
@@ -17,10 +18,12 @@ This skill has two phases: **Design** (propose the strategy) and **Audit** (crit
 
 Before designing, check whether the project has:
 - A literature review or annotated bibliography (from `/discover-lit`)
-- A domain profile (from `/domain-profile`)
 - A data assessment (from prior work or `/discover-lit`)
+- Existing analysis scripts in `code/` — read them to avoid proposing a strategy that contradicts work already done
 
 Use whatever context exists. If none exists, ask the user for: (1) the research question, (2) the data they have or plan to use, (3) the population and context.
+
+Use Bash only for data inspection (loading, checking structure, counting observations) — not for estimation or analysis.
 
 ---
 
@@ -46,7 +49,7 @@ For each candidate, specify:
 | **Key assumptions** | Parallel trends, exclusion restriction, continuity, SUTVA, etc. |
 | **Testable implications** | Pre-trends test, balance, McCrary, placebo |
 | **Threats** | What could invalidate this design |
-| **Data requirements** | Does the available data support this? |
+| **Data requirements** | Does the available data support this? Is variation in treatment sufficient for detection at plausible magnitudes? |
 
 Recommend a **primary strategy** and one or two **robustness alternatives**:
 - "Lead with DiD, robustness check with Synthetic Control"
@@ -54,7 +57,7 @@ Recommend a **primary strategy** and one or two **robustness alternatives**:
 
 ### Step 3: Specify the Estimation Approach
 
-- Recommended estimator and package (R: `fixest`, `did`, `rdrobust`; Python: `linearmodels`, `statsmodels`; Stata: `reghdfe`, `csdid`)
+- Recommended estimator and package (R: `fixest`, `did`, `rdrobust`; Python: `linearmodels`, `statsmodels`)
 - Functional form choices (linear, log, etc.)
 - Fixed effects structure
 - Clustering level and justification
@@ -82,13 +85,17 @@ Tests that should produce null results if the design is correct:
 
 ### Step 6: Anticipate Referee Objections
 
-List the **top 3 things a referee will attack** and pre-plan a response or test for each. Think like a hostile but fair reviewer.
+List the **top 3 things a referee will attack** and pre-plan a response or test for each. Think like a hostile but fair reviewer. Common objections include: "What's the mechanism?" — can you articulate a plausible causal channel?
 
 ---
 
+## Checkpoint
+
+Present the strategy memo to the user and confirm alignment before proceeding to the audit. The design is consequential — the user should review it before it gets critiqued.
+
 ## Phase 2: Audit the Strategy
 
-After completing the design, switch perspective to an econometrics referee and audit your own strategy. Execute these four phases **sequentially** — do not skip ahead.
+After completing the design, switch perspective to a methods referee and audit your own strategy. Execute these four phases **sequentially** — do not skip ahead.
 
 ### Audit Phase 1: Claim Triage
 
@@ -142,16 +149,16 @@ Run the appropriate design-specific checklist:
 
 ### Audit Phase 3: Inference Soundness
 
-Only proceed if Phase 2 finds no critical issues.
+Complete this phase even if Phase 2 found critical issues — note which findings are conditional on resolving design concerns.
 
 - Clustering level matches variation in treatment?
-- Enough clusters (>42 for reliable cluster-robust SEs)?
+- Enough clusters (>50 for reliable cluster-robust SEs)?
 - Multiple testing corrections needed?
 - Code specification matches the stated model?
 
 ### Audit Phase 4: Completeness
 
-Only proceed if Phases 2–3 are clean.
+Complete regardless of prior findings — note dependencies.
 
 - Robustness plan covers key threats?
 - Falsification tests address the right assumptions?
@@ -169,11 +176,10 @@ Only proceed if Phases 2–3 are clean.
 
 Save all outputs to `quality_reports/strategy/`:
 
-1. **`strategy_memo.md`** — full specification: question, design, estimand, treatment, control, assumptions, threats, estimation approach
-2. **`pseudo_code.md`** — specification-level pseudo-code for the main estimation (not runnable code, but precise enough that the Coder can implement it directly)
-3. **`robustness_plan.md`** — every robustness check, what it tests, what failure means
-4. **`falsification_tests.md`** — every falsification/placebo test with expected null result
-5. **`strategy_audit.md`** — the Phase 2 audit report with findings classified by severity
+1. **`strategy_memo.md`** — the complete design document with sections for: question, design, estimand, treatment, control, assumptions, threats, estimation approach, pseudo-code, robustness plan, and falsification tests
+2. **`strategy_audit.md`** — the Phase 2 audit report with findings classified by severity (kept separate — it's a different voice)
+
+The robustness plan in `strategy_memo.md` is a design artifact. Use `/robustness-battery` to execute these checks after the main specification is coded.
 
 ## Three-Strikes Escalation
 
