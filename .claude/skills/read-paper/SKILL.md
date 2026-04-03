@@ -7,7 +7,7 @@ argument-hint: [pdf-path-or-search-query]
 
 # Read-Paper: Deep Reading of Academic PDFs
 
-**CRITICAL RULE: Never read a full PDF. Never.** Only read the 4-page split files, and only 3 splits at a time (~12 pages). Reading a full PDF will either crash the session with an unrecoverable "prompt too long" error — destroying all context — or produce shallow, hallucinated output. There are no exceptions.
+**CRITICAL RULE: Never read a PDF directly — not the original, not the splits.** This skill extracts text to .txt files and reads those. PDFs are 10–50x larger in context than plain text and will crash the session with an unrecoverable "Request too large" error. Always read the .txt files produced by the split step.
 
 ## When This Skill Is Invoked
 
@@ -49,16 +49,29 @@ def split_pdf(input_path, output_dir, pages_per_chunk=4):
 
     for start in range(0, total, pages_per_chunk):
         end = min(start + pages_per_chunk, total)
+
+        # Write PDF split (kept as backup for visual inspection)
         writer = PdfWriter()
         for i in range(start, end):
             writer.add_page(reader.pages[i])
-
-        out_name = f"{prefix}_pp{start+1}-{end}.pdf"
-        out_path = os.path.join(output_dir, out_name)
-        with open(out_path, "wb") as f:
+        pdf_name = f"{prefix}_pp{start+1}-{end}.pdf"
+        pdf_path = os.path.join(output_dir, pdf_name)
+        with open(pdf_path, "wb") as f:
             writer.write(f)
 
+        # Extract text to .txt (THIS is what you read in Step 3)
+        text = ""
+        for i in range(start, end):
+            page_text = reader.pages[i].extract_text()
+            if page_text:
+                text += f"--- Page {i+1} ---\n{page_text}\n\n"
+        txt_name = f"{prefix}_pp{start+1}-{end}.txt"
+        txt_path = os.path.join(output_dir, txt_name)
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(text)
+
     print(f"Split {total} pages into {-(-total // pages_per_chunk)} chunks in {output_dir}")
+    print(f"Created both .pdf and .txt files. READ THE .txt FILES, not the .pdf files.")
 ```
 
 **Directory convention:**
@@ -66,31 +79,38 @@ def split_pdf(input_path, output_dir, pages_per_chunk=4):
 articles/
 ├── smith_2024.pdf                    # original PDF — NEVER DELETE THIS
 └── split_smith_2024/                 # split subdirectory
-    ├── smith_2024_pp1-4.pdf
+    ├── smith_2024_pp1-4.pdf          # PDF backup (do NOT read these)
+    ├── smith_2024_pp1-4.txt          # extracted text (READ THESE)
     ├── smith_2024_pp5-8.pdf
-    ├── smith_2024_pp9-12.pdf
+    ├── smith_2024_pp5-8.txt
     └── ...
 ```
 
 The original PDF remains in `articles/` permanently.
 
-**Scanned PDF check:** After splitting, read the first split. If the text is mostly empty or garbled, the PDF is likely scanned images. Tell the user: "This PDF appears to be scanned. Text extraction returned garbled output. Consider running OCR on the PDF first, then re-run /read-paper on the OCR'd version." The splits are working copies. If anything goes wrong, you can always re-split from the original.
+**Scanned PDF check:** After splitting, read the first .txt file. If the text is mostly empty or garbled, the PDF is likely scanned images. Tell the user: "This PDF appears to be scanned. Text extraction returned garbled output. Consider running OCR on the PDF first, then re-run /read-paper on the OCR'd version."
 
 If pypdf is not installed, install it: `pip install pypdf --break-system-packages`
 
-## Step 3: Read in Batches of 3 Splits
+**If splits already exist but .txt files do not:** Re-run the split script. The .txt files are essential — they are what you read in Step 3. Never read the .pdf splits directly.
 
-Read **exactly 3 split files at a time** (~12 pages). Note: the Read tool has a 20-page-per-request limit for PDFs, so 3 × 4-page splits (12 pages) is safe. Do not increase the chunk size without accounting for this limit. After each batch:
+## Step 3: Read the .txt Files (NEVER the .pdf splits)
 
-1. **Read** the 3 split PDFs using the Read tool
-2. **Update** the running notes file (`notes.md` in the split subdirectory)
-3. **Pause** and tell the user:
+**CRITICAL: Always read the .txt files, never the .pdf split files.** PDF files are 10–50x larger than their text equivalents and will crash the session. The .pdf splits exist only as backup for visual inspection if text extraction was poor.
 
-> "I have finished reading splits [X-Y] and updated the notes. I have [N] more splits remaining. Would you like me to continue with the next 3?"
+Read **up to 5 .txt split files at a time**. After reading, update `notes.md` with structured extraction, then tell the user:
 
-4. **Wait** for the user to confirm before reading the next batch
+> "Read splits [X–Y] and updated notes. [N] splits remaining. Continue?"
 
-Do NOT read ahead. Do NOT read all splits at once. The pause-and-confirm protocol is mandatory.
+Wait for the user to confirm before reading the next batch.
+
+**If you find yourself about to call Read on a .pdf file in the split directory — STOP. Read the .txt version instead.**
+
+**The correct pattern — the ONLY acceptable pattern:**
+
+✅ Read 3 splits → Update notes.md → "Read splits 1–3 and updated notes. 19 splits remaining. Continue?" → RESPONSE ENDS HERE
+
+The user's original task (e.g. "verify all claims," "read the whole paper," "review everything") does NOT change this limit. You accomplish the full task across multiple responses, 3 splits at a time, with the user saying "continue" between each.
 
 ## Step 4: Structured Extraction
 
@@ -135,7 +155,7 @@ By the time all splits are read, the notes should contain specific data sources,
 
 ## When NOT to Split
 
-- Papers shorter than ~15 pages: read directly using the Read tool with `pages` parameter (e.g., `pages: "1-15"`), no splitting needed
+- Papers shorter than ~15 pages: read directly using the Read tool with `pages` parameter (e.g., `pages: "1-15"`) — these are small enough to read as PDF
 - Policy briefs or non-technical documents: a rough summary is fine
 - Triage only: read just the first split (pages 1-4) for abstract and introduction
 
@@ -144,8 +164,8 @@ By the time all splits are read, the notes should contain specific data sources,
 | Step | Action |
 |------|--------|
 | **Acquire** | Download to `./articles/` or use existing local file |
-| **Split** | 4-page chunks into `./articles/split_<name>/` |
-| **Read** | 3 splits at a time, pause after each batch |
+| **Split** | 4-page chunks → .pdf + .txt files into `./articles/split_<name>/` |
+| **Read** | Read the .txt files (NEVER .pdf splits), up to 5 at a time |
 | **Write** | Update `notes.md` with structured extraction |
 | **Confirm** | Ask user before continuing to next batch |
 
