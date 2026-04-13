@@ -1,7 +1,8 @@
 ---
 name: read-paper
 description: "Deeply read academic PDFs. Splits into 4-page chunks, reads in small batches, produces structured notes. Use when asked to read, review, or summarize a paper."
-allowed-tools: Bash(python*), Bash(pip*), Bash(curl*), Bash(wget*), Bash(mkdir*), Bash(ls*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
+disable-model-invocation: true
+allowed-tools: Bash(python*), Bash(pip*), Bash(curl*), Bash(wget*), Bash(mkdir*), Bash(ls*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Agent
 argument-hint: [pdf-path-or-search-query]
 ---
 
@@ -33,19 +34,44 @@ The user wants you to read, review, or summarize an academic paper. The input is
 
 **CRITICAL: Always preserve the original PDF.** The downloaded or provided PDF in `./articles/` must NEVER be deleted, moved, or overwritten at any point in this workflow. The split files are derivatives — the original is the permanent artifact. Do not clean up, do not remove, do not tidy. The original stays.
 
-## Step 2: Split the PDF
+## Step 2: Check for Existing Extract or Splits
 
-Create a subdirectory for the splits and run the splitting script:
+Before splitting, check whether this paper has already been processed.
+
+**Check 1: Final extract.** Look for `<basename>_text.md` in the same folder as the PDF (e.g., `articles/smith_2024_text.md`).
+
+If found, ask:
+> "An extract from a previous deep-read exists (`<basename>_text.md`). Use it for this request, or re-read the PDF from scratch?"
+- **Use extract**: read the `_text.md` file and use it as the source notes — skip Steps 3 and 4 entirely
+- **Re-read**: proceed to Step 3
+
+**Check 2: Existing splits.** If no `_text.md` exists, check whether `articles/articles_build/split_<basename>/` already contains `.txt` files.
+
+If found, ask:
+> "Splits already exist for `<basename>` (N chunks). Reuse existing splits, or re-split from scratch?"
+- **Reuse**: skip Step 3, proceed to Step 4 using the existing `.txt` files
+- **Re-split**: delete the existing split folder, proceed to Step 3
+
+If neither extract nor splits exist, proceed to Step 3.
+
+## Step 3: Split the PDF
+
+Create the splits in `articles/articles_build/split_<basename>/` and run the splitting script:
 
 ```python
 from pypdf import PdfReader, PdfWriter
 import os, sys
 
-def split_pdf(input_path, output_dir, pages_per_chunk=4):
+def split_pdf(input_path, pages_per_chunk=4):
+    folder_path = os.path.dirname(os.path.abspath(input_path))
+    foldername = os.path.basename(folder_path)
+    pdf_basename = os.path.splitext(os.path.basename(input_path))[0]
+    build_dir = os.path.join(folder_path, foldername + '_build')
+    output_dir = os.path.join(build_dir, 'split_' + pdf_basename)
     os.makedirs(output_dir, exist_ok=True)
+
     reader = PdfReader(input_path)
     total = len(reader.pages)
-    prefix = os.path.splitext(os.path.basename(input_path))[0]
 
     for start in range(0, total, pages_per_chunk):
         end = min(start + pages_per_chunk, total)
@@ -54,18 +80,18 @@ def split_pdf(input_path, output_dir, pages_per_chunk=4):
         writer = PdfWriter()
         for i in range(start, end):
             writer.add_page(reader.pages[i])
-        pdf_name = f"{prefix}_pp{start+1}-{end}.pdf"
+        pdf_name = f"{pdf_basename}_pp{start+1}-{end}.pdf"
         pdf_path = os.path.join(output_dir, pdf_name)
         with open(pdf_path, "wb") as f:
             writer.write(f)
 
-        # Extract text to .txt (THIS is what you read in Step 3)
+        # Extract text to .txt (THIS is what you read in Step 4)
         text = ""
         for i in range(start, end):
             page_text = reader.pages[i].extract_text()
             if page_text:
                 text += f"--- Page {i+1} ---\n{page_text}\n\n"
-        txt_name = f"{prefix}_pp{start+1}-{end}.txt"
+        txt_name = f"{pdf_basename}_pp{start+1}-{end}.txt"
         txt_path = os.path.join(output_dir, txt_name)
         with open(txt_path, "w", encoding="utf-8") as f:
             f.write(text)
@@ -78,13 +104,18 @@ def split_pdf(input_path, output_dir, pages_per_chunk=4):
 ```
 articles/
 ├── smith_2024.pdf                    # original PDF — NEVER DELETE THIS
-└── split_smith_2024/                 # split subdirectory
-    ├── smith_2024_pp1-4.pdf          # PDF backup (do NOT read these)
-    ├── smith_2024_pp1-4.txt          # extracted text (READ THESE)
-    ├── smith_2024_pp5-8.pdf
-    ├── smith_2024_pp5-8.txt
-    └── ...
+├── smith_2024_text.md                # final structured extract (created after deep-read)
+└── articles_build/                   # build directory — keeps splits separate from sources
+    └── split_smith_2024/             # split subdirectory
+        ├── smith_2024_pp1-4.pdf      # PDF backup (do NOT read these)
+        ├── smith_2024_pp1-4.txt      # extracted text (READ THESE)
+        ├── smith_2024_pp5-8.pdf
+        ├── smith_2024_pp5-8.txt
+        ├── notes.md                  # working notes (updated incrementally)
+        └── ...
 ```
+
+The build directory (`articles_build/`) keeps split artifacts separate from source PDFs and finished extracts. Multiple PDFs in the same folder share one build directory, each with its own `split_<basename>/` subdirectory inside it.
 
 The original PDF remains in `articles/` permanently.
 
@@ -92,9 +123,9 @@ The original PDF remains in `articles/` permanently.
 
 If pypdf is not installed, install it: `pip install pypdf --break-system-packages`
 
-**If splits already exist but .txt files do not:** Re-run the split script. The .txt files are essential — they are what you read in Step 3. Never read the .pdf splits directly.
+**If splits already exist but .txt files do not:** Re-run the split script. The .txt files are essential — they are what you read in Step 4. Never read the .pdf splits directly.
 
-## Step 3: Read the .txt Files (NEVER the .pdf splits)
+## Step 4: Read the .txt Files (NEVER the .pdf splits)
 
 **CRITICAL: Always read the .txt files, never the .pdf split files.** PDF files are 10–50x larger than their text equivalents and will crash the session. The .pdf splits exist only as backup for visual inspection if text extraction was poor.
 
@@ -108,11 +139,11 @@ Wait for the user to confirm before reading the next batch.
 
 **The correct pattern — the ONLY acceptable pattern:**
 
-✅ Read 3 splits → Update notes.md → "Read splits 1–3 and updated notes. 19 splits remaining. Continue?" → RESPONSE ENDS HERE
+✅ Read 5 splits → Update notes.md → "Read splits 1–5 and updated notes. 15 splits remaining. Continue?" → RESPONSE ENDS HERE
 
-The user's original task (e.g. "verify all claims," "read the whole paper," "review everything") does NOT change this limit. You accomplish the full task across multiple responses, 3 splits at a time, with the user saying "continue" between each.
+The user's original task (e.g. "verify all claims," "read the whole paper," "review everything") does NOT change this limit. You accomplish the full task across multiple responses, 5 splits at a time, with the user saying "continue" between each.
 
-## Step 4: Structured Extraction
+## Step 5: Structured Extraction
 
 As you read, collect information along these dimensions and write them into `notes.md`:
 
@@ -129,10 +160,10 @@ These questions extract what a researcher needs to **build on or replicate** the
 
 ## The Notes File
 
-The output is `notes.md` in the split subdirectory:
+The working notes file is `notes.md` in the split subdirectory:
 
 ```
-articles/split_smith_2024/notes.md
+articles/articles_build/split_smith_2024/notes.md
 ```
 
 This file is **updated incrementally** after each batch. Use this template:
@@ -149,13 +180,56 @@ This file is **updated incrementally** after each batch. Use this template:
 ## Findings
 ## Contributions
 ## Replication Feasibility
-``` After each batch, update whichever dimensions have new information — do not rewrite from scratch.
+```
+
+After each batch, update whichever dimensions have new information — do not rewrite from scratch.
 
 By the time all splits are read, the notes should contain specific data sources, variable names, equation references, sample sizes, coefficient estimates, and standard errors. Not a summary — a structured extraction.
 
+**After all batches are complete**, write the final notes to `<basename>_text.md` in the same folder as the source PDF:
+
+```
+articles/smith_2024_text.md
+```
+
+Then notify the user:
+> "Extract saved to `smith_2024_text.md` alongside the source PDF. Future requests on this paper can reuse it without re-reading."
+
+Both files are kept — `notes.md` is the working copy, `_text.md` is the persistent, reusable artifact. Never delete either.
+
+## Agent Isolation Protocol
+
+**When read-paper is invoked by another skill or workflow** (any process that continues working after the PDF has been read), the reading MUST run inside a subagent to prevent context accumulation in the parent conversation.
+
+**Why:** Even though this skill reads `.txt` files (not PDF images), a long reading session still accumulates significant context. When chained from a literature review or multi-paper workflow, this can degrade the parent conversation's reliability. Subagent isolation keeps the parent context clean.
+
+**Pattern:** The parent skill handles acquisition (Step 1) and splitting (Step 3) in its own context. Then it launches an Agent to perform all the reading:
+
+```
+Read .txt split files and produce structured extraction notes.
+
+Split directory: <split_dir>
+Files (read in this order, 5 at a time): <file_list>
+Notes output: <notes_path>
+Text output: <text_path>
+
+Process:
+1. Read 5 .txt files at a time using the Read tool
+2. After each batch, update the notes file with extracted content
+3. Extract: research question, audience, method, data, statistical methods,
+   findings, contributions, replication feasibility
+4. Write the final structured extraction to the text output path
+
+Report when done: pages read, one-sentence content summary.
+```
+
+After the agent returns, the parent reads the output files (plain markdown) and continues its workflow.
+
+**Standalone invocations** (user calls `/read-paper` directly) use the interactive pause-and-confirm protocol in the main conversation.
+
 ## When NOT to Split
 
-- Papers shorter than ~15 pages: read directly using the Read tool with `pages` parameter (e.g., `pages: "1-15"`) — these are small enough to read as PDF
+- Papers shorter than ~15 pages: extract text with the same script but skip batching — read the single `.txt` output in one pass
 - Policy briefs or non-technical documents: a rough summary is fine
 - Triage only: read just the first split (pages 1-4) for abstract and introduction
 
@@ -164,9 +238,11 @@ By the time all splits are read, the notes should contain specific data sources,
 | Step | Action |
 |------|--------|
 | **Acquire** | Download to `./articles/` or use existing local file |
-| **Split** | 4-page chunks → .pdf + .txt files into `./articles/split_<name>/` |
+| **Check** | Look for existing `_text.md` extract or existing `.txt` splits — offer to reuse |
+| **Split** | 4-page chunks → .pdf + .txt files into `./articles/articles_build/split_<name>/` |
 | **Read** | Read the .txt files (NEVER .pdf splits), up to 5 at a time |
 | **Write** | Update `notes.md` with structured extraction |
+| **Persist** | Save final extraction to `<basename>_text.md` alongside the source PDF |
 | **Confirm** | Ask user before continuing to next batch |
 
 For detailed explanation of why this method works, see [methodology.md](methodology.md).

@@ -69,7 +69,7 @@ project/
 - Use :::fragment for progressive disclosure
 - Mermaid diagrams: always include %%{init:{...}}%% block with useMaxWidth: true
 - Code chunks: echo: false, warning: false, message: false by default
-- Maximum 6 bullets per slide, 10 words per bullet
+- Maximum 6 bullets per slide, 12 words per bullet
 - Slide titles are assertions, not labels ("Trade increased GDP by 12%" not "Results")
 - Cognitive load should be roughly equal across all slides
 - Lead with the conclusion, then support it (Pyramid Principle)

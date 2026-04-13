@@ -35,7 +35,20 @@ Before interpreting magnitudes, assess whether the specification is credible:
 - Are there obvious design concerns visible in the output (weak instruments, few clusters, post-treatment controls)?
 - If critical concerns are found, flag them prominently before proceeding — magnitudes are meaningless if the design is flawed. If the design itself needs rethinking, recommend `/strategize` before continuing interpretation.
 
-## Step 3: Substantive Interpretation
+## Step 3: Unexplained Feature Scan
+
+Before interpreting, describe every visible pattern in the output — not just the headline coefficient. For each pattern, ask what would generate it, starting with mundane explanations (rounding, sample restriction, measurement artifact) before substantive ones.
+
+Look for:
+- Coefficients that flip sign across specifications
+- Sample sizes that change between columns without explanation
+- Control variables with surprising magnitudes or signs
+- Patterns in fixed-effect structure that seem inconsistent
+- Any feature that doesn't fit the story the specification is designed to tell
+
+Identify the single hardest feature to explain under the preferred interpretation. If it's consequential, flag it before proceeding — interpreting magnitudes around an unexplained anomaly is premature.
+
+## Step 4: Substantive Interpretation
 
 For each key coefficient:
 
@@ -48,7 +61,7 @@ For each key coefficient:
 7. **Nonlinear models**: For logit/probit, distinguish between reporting odds ratios and marginal effects — state which is being shown and what it means in probability terms. For other nonlinear models (Poisson, negative binomial), interpret coefficients as semi-elasticities or incidence rate ratios as appropriate.
 8. **IV output**: If two-stage output is shown, interpret the first-stage coefficient and instrument relevance (F-statistic), then the second-stage causal estimate. The second stage is the headline result; the first stage is the credibility check.
 
-## Step 4: Diagnostic Check
+## Step 5: Diagnostic Check
 
 Flag any concerns visible in the output:
 
@@ -61,7 +74,7 @@ Flag any concerns visible in the output:
 - **Fixed effects absorbing variation**: If unit FE + time FE + treatment varies only cross-sectionally → identification concern. Note that coefficients on time-invariant variables are absorbed by unit FE and cannot be estimated.
 - **Multiple hypothesis testing**: If many coefficients are being tested (e.g., heterogeneity across subgroups), flag the risk of false discoveries and suggest adjustment (Bonferroni, Benjamini-Hochberg, or Romano-Wolf)
 
-## Step 5: Draft Results Paragraph
+## Step 6: Draft Results Paragraph
 
 Write a paragraph suitable for the paper's results section:
 
@@ -76,7 +89,7 @@ or "comparable to the effect found by Author (Year)"].
 [Any caveats or robustness notes].
 ```
 
-## Step 6: Comparison Across Specifications (if multiple columns)
+## Step 7: Comparison Across Specifications (if multiple columns)
 
 If the output contains multiple specifications (columns):
 

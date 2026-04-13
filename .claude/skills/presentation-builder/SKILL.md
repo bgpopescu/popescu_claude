@@ -202,6 +202,8 @@ Create a slide outline before writing any .qmd content. Each slide entry should 
 
 Check for cognitive load balance: no cluster of consecutive heavy slides, no long stretches of light slides. Redistribute if needed.
 
+**Show the outline to the user and wait for approval before proceeding to Step 3.** Building a full deck is expensive — figures, diagrams, multi-agent review. A structural problem caught here saves significant rework. Do not start writing slides until the user confirms the outline.
+
 Typical conference deck structure (20 minutes), roughly 12–16 content slides:
 
 | Slides | Content | Weight |
@@ -224,7 +226,7 @@ More than 20 slides signals poor distribution.
 
 - Run all code FIRST to generate figures. Do not insert placeholders.
 - Use R (ggplot2 with `theme_meridian()`) for all data visualizations
-- **Use real data** whenever possible: built-in datasets, reputable R packages (e.g., gapminder), or data you can reproducibly download/scrape. Use simulated data sparingly and always label it clearly as "Simulated example" in the caption.
+- **Use only data that can be obtained reproducibly inside the project**: built-in R datasets, reputable R packages (e.g., gapminder), or data you can reproducibly download/scrape within the .qmd. Do not rely on external files that the reader would need to obtain separately. Use simulated data sparingly and always label it clearly as "Simulated example" in the caption.
 - One message per chart. Remove chartjunk. Label directly (avoid legends requiring eye movement). Use color to highlight the key comparison.
 - Every figure or table must include: a clear title, labeled axes/columns, units where applicable, and a source note. Do NOT invent sources — use "Author's illustration" or "Simulated example" when appropriate.
 - Insert with explicit width control:
@@ -330,6 +332,8 @@ while not all_tests_pass:
 ```
 
 Treat ALL Quarto warnings as errors. Fix every warning before proceeding, no matter how minor.
+
+**Circuit breaker:** If the same error or warning persists after 3 different fix attempts, stop editing and tell the user. Quote the error, list what you tried, and ask how to proceed. The cost of asking is 2 minutes. The cost of spiraling is an hour of edits that make the file progressively worse. This rule overrides "fix all warnings" — zero tolerance does not mean infinite attempts.
 
 ## Step 5: Check for Silent Visual Errors
 

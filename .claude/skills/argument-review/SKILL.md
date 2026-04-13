@@ -96,13 +96,24 @@ Switch perspective to the author. For each criticism from Step 6:
 - Assess whether the defense **fully resolves**, **partially resolves**, or **fails to resolve** the issue
 - For issues where the defense fails, note what the author would need to add (data, analysis, argument) to succeed
 
-## Step 8: Synthesis
+## Step 8: Unexploited Strengths
+
+Switch from adversarial mode to constructive mode. Ask what the paper is underselling:
+
+- **Is the design stronger than argued?** Does the identification strategy have virtues the paper doesn't emphasize? Is the source of variation more compelling than the framing suggests?
+- **Is there a robustness check that would crush the main objection?** A falsification test, placebo, or specification that would preemptively defeat the strongest criticism from Step 6 — but that was never run or never highlighted.
+- **Are the descriptives undersold?** Do the summary statistics or data features tell a story the paper ignores?
+- **Is the paper positioned too narrowly?** Does the finding speak to a broader audience or literature than the paper claims?
+
+For each undersold strength, note what the author would need to add or reframe to exploit it. Be specific — "emphasize the design" is useless; "move the falsification test from Appendix Table A3 to the main text as Table 2" is actionable.
+
+## Step 9: Synthesis
 
 Combine findings from all prior steps into a constructive report:
 
 1. Remove any criticisms that are hallucinated or factually wrong based on what the paper actually says
 2. Collapse redundant issues across steps into a unified list
-3. Produce two sections:
+3. Produce three sections:
 
 **Section A — Overall Feedback:** For each surviving issue, write a constructive thematic entry. For each:
 - Quote the specific passage from the paper
@@ -111,7 +122,9 @@ Combine findings from all prior steps into a constructive report:
 
 Organize by importance to referees, not by which step raised it. Use a constructive tone — "here is how to strengthen" not "here is what is wrong." Classify each issue using the final report scale: **fatal**, **serious but addressable**, **scope condition**, or **cosmetic**. Map step-specific categories (e.g., "conceptually consequential" from Step 5) onto this scale.
 
-**Section B — Detailed Comments:** List specific line-level issues (numerical inconsistencies, notation problems, terminology drift, misstatements). For each, quote the exact passage and explain the fix.
+**Section B — Unexploited Strengths:** List undersold strengths from Step 8 with specific, actionable recommendations for how to leverage them.
+
+**Section C — Detailed Comments:** List specific line-level issues (numerical inconsistencies, notation problems, terminology drift, misstatements). For each, quote the exact passage and explain the fix.
 
 ## Writing the Report
 
@@ -127,7 +140,10 @@ Paper: {title}
 ## Section A: Overall Feedback
 [Thematic entries with quoted passages and revision paths]
 
-## Section B: Detailed Comments
+## Section B: Unexploited Strengths
+[Undersold strengths with actionable recommendations]
+
+## Section C: Detailed Comments
 [Line-level issues with quotes and fixes]
 
 ## Appendix: Step-by-Step Findings
@@ -138,6 +154,7 @@ Paper: {title}
 ### Step 5: Notation & Precision
 ### Step 6: Referee Report
 ### Step 7: Author Defense
+### Step 8: Unexploited Strengths
 ```
 
 ## Assessment Criteria

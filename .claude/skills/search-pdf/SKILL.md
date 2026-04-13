@@ -1,6 +1,7 @@
 ---
 name: search-pdf
 description: "Search large PDFs for specific information. Extracts text, searches by keyword, returns page numbers with context, then reads relevant pages."
+disable-model-invocation: true
 argument-hint: "[pdf-path] [search-query]"
 allowed-tools: Bash(python*), Bash(pip*), Read, Write, Edit, Grep, Glob
 ---
